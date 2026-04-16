@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-accent="blue">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTrack — Teacher Sign Up</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230052cc'/%3E%3Ctext x='50' y='62' font-size='56' text-anchor='middle' fill='white' font-family='Arial, sans-serif'%3ET%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">👩‍🏫</div>
+      <h1>Teacher Sign Up</h1>
+      <p>Create your teacher account using your school code</p>
+    </div>
+
+    <div class="card">
+      <div id="signup-error" class="alert alert-danger" style="display:none;"></div>
+      <div id="signup-success" class="alert alert-success" style="display:none;"></div>
+
+      <div class="form-group">
+        <label>School Code *</label>
+        <input type="text" class="form-control" id="schoolCode"
+          placeholder="e.g. IGS-5847" />
+        <div class="form-hint">Ask your school administrator for the school code.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" class="form-control" id="teacherName"
+          placeholder="e.g. Mrs. Adebayo Fatima" />
+      </div>
+
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" class="form-control" id="teacherEmail"
+          placeholder="teacher@school.edu.ng" />
+      </div>
+
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" class="form-control" id="teacherPassword"
+          placeholder="Min 6 characters" />
+      </div>
+
+      <div class="form-group">
+        <label>Confirm Password *</label>
+        <input type="password" class="form-control" id="teacherPassword2"
+          placeholder="Repeat password" />
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg" id="signupBtn" onclick="signup()">
+        Create Teacher Account
+      </button>
+
+      <div class="auth-divider">or</div>
+      <p style="text-align:center; font-size:0.875rem;">
+        <a href="login.html">Already have an account? Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, showToast } from './js/firebase.js';
+  import {
+    createUserWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    doc, getDoc, setDoc, serverTimestamp,
+    collection, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // Apply saved theme
+  const t = localStorage.getItem('et-theme') || 'light';
+  const a = localStorage.getItem('et-accent') || 'blue';
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-accent', a);
+
+  window.signup = async function() {
+    const errEl = document.getElementById('signup-error');
+    const sucEl = document.getElementById('signup-success');
+    const btn   = document.getElementById('signupBtn');
+
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    const schoolCode = document.getElementById('schoolCode').value.trim().toUpperCase();
+    const name       = document.getElementById('teacherName').value.trim();
+    const email      = document.getElementById('teacherEmail').value.trim();
+    const password   = document.getElementById('teacherPassword').value;
+    const password2  = document.getElementById('teacherPassword2').value;
+
+    // Validation
+    if (!schoolCode) return showErr('School code is required.');
+    if (!name)       return showErr('Full name is required.');
+    if (!email)      return showErr('Email is required.');
+    if (password.length < 6) return showErr('Password must be at least 6 characters.');
+    if (password !== password2) return showErr('Passwords do not match.');
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+
+    try {
+      // 1. Fetch all schools and find by code (case-insensitive)
+      const schoolsSnap = await getDocs(collection(db, 'schools'));
+      let schoolId = null;
+      let schoolName = null;
+
+      for (const doc of schoolsSnap.docs) {
+        const data = doc.data();
+        if (data.code && data.code.toUpperCase() === schoolCode) {
+          schoolId = doc.id;
+          schoolName = data.name;
+          break;
+        }
+      }
+
+      if (!schoolId) {
+        showErr('Invalid school code. Please check with your administrator.');
+        btn.disabled = false;
+        btn.textContent = 'Create Teacher Account';
+        return;
+      }
+
+      // 2. Create Firebase Auth account
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCred.user.uid;
+
+      // 3. Create user document in school subcollection
+      await setDoc(doc(db, 'schools', schoolId, 'users', uid), {
+        name, email, role: 'teacher', schoolId, createdAt: serverTimestamp()
+      });
+
+      // 4. Save session
+      localStorage.setItem('et-uid', uid);
+      localStorage.setItem('et-schoolId', schoolId);
+      localStorage.setItem('et-role', 'teacher');
+      localStorage.setItem('et-name', name);
+
+      sucEl.textContent = `Account created! Welcome to ${schoolName}, ${name}. Redirecting...`;
+      sucEl.style.display = 'flex';
+
+      setTimeout(() => { window.location.href = 'teacher.html'; }, 2000);
+
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Create Teacher Account';
+      const msg =
+        err.code === 'auth/email-already-in-use'
+          ? 'This email is already registered. Try logging in instead.'
+          : err.message || 'An error occurred. Please try again.';
+      showErr(msg);
+    }
+  };
+
+  function showErr(msg) {
+    const el = document.getElementById('signup-error');
+    el.textContent = msg;
+    el.style.display = 'flex';
+  }
+</script>
+</body>
+</html>

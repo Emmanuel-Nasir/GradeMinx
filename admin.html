@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-accent="blue">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTrack — Admin Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .grade-edit-row {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 36px;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .code-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .role-badge-admin  { background: var(--info-bg); color: var(--info); }
+    .role-badge-teacher { background: var(--success-bg); color: var(--success); }
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--divider);
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); font-weight: 500; min-width: 120px; }
+    .info-value { color: var(--text-primary); text-align: right; }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p style="color:var(--text-muted); font-size:0.875rem;">Loading dashboard...</p>
+</div>
+
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app-shell">
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🎓</div>
+      <div>
+        <h1>EduTrack</h1>
+        <span id="schoolNameLabel">Loading...</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <button class="nav-item active" id="nav-overview" onclick="showSection('overview')">
+        <span class="nav-icon">📊</span> Overview
+      </button>
+      <button class="nav-item" id="nav-teachers" onclick="showSection('teachers')">
+        <span class="nav-icon">👩‍🏫</span> Teachers
+      </button>
+      <button class="nav-item" id="nav-students" onclick="showSection('students')">
+        <span class="nav-icon">🎒</span> Students
+      </button>
+      <button class="nav-item" id="nav-grades" onclick="showSection('grades')">
+        <span class="nav-icon">📝</span> All Grades
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Settings</div>
+      <button class="nav-item" id="nav-school" onclick="showSection('school')">
+        <span class="nav-icon">🏫</span> School Info
+      </button>
+      <button class="nav-item" id="nav-grading" onclick="showSection('grading')">
+        <span class="nav-icon">⚖️</span> Grading Scale
+      </button>
+      <button class="nav-item" id="nav-theme" onclick="showSection('theme')">
+        <span class="nav-icon">🎨</span> Appearance
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="adminAvatar">A</div>
+        <div>
+          <div style="font-size:0.85rem; font-weight:500; color:rgba(255,255,255,0.9);" id="adminName">Admin</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Administrator</div>
+        </div>
+      </div>
+      <button class="nav-item" onclick="logout()" style="margin-top:0.5rem;">
+        <span class="nav-icon">🚪</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main class="main-content">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <h4 id="topbarTitle" style="font-size:1rem; font-weight:600;">Overview</h4>
+      </div>
+      <div class="topbar-right">
+        <span class="badge badge-info">Admin</span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ── OVERVIEW ──────────────────────────────────── -->
+      <section id="section-overview">
+        <div class="page-header">
+          <div>
+            <h2 id="welcomeTitle">Good morning 👋</h2>
+            <p id="welcomeSub">Here's your school summary.</p>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card accent-card">
+            <div class="stat-label">Total Teachers</div>
+            <div class="stat-value" id="statTeachers">—</div>
+            <div class="stat-sub">Registered staff</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Students</div>
+            <div class="stat-value" id="statStudents">—</div>
+            <div class="stat-sub">Across all classes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Grades</div>
+            <div class="stat-value" id="statGrades">—</div>
+            <div class="stat-sub">Records entered</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">School Code</div>
+            <div class="stat-value" style="font-size:1rem; font-family:var(--font-mono);" id="statCode">—</div>
+            <div class="stat-sub">Share with teachers</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem;" class="overview-grid">
+          <!-- Recent Teachers -->
+          <div class="card">
+            <h4 style="margin-bottom:1rem;">Recent Teachers</h4>
+            <div id="recentTeachers"><div class="spinner"></div></div>
+          </div>
+          <!-- Recent Students -->
+          <div class="card">
+            <h4 style="margin-bottom:1rem;">Recent Students</h4>
+            <div id="recentStudents"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TEACHERS ───────────────────────────────────── -->
+      <section id="section-teachers" style="display:none;">
+        <div class="page-header">
+          <div>
+            <h2>Teachers</h2>
+            <p>Manage teaching staff. School code: <strong id="schoolCodeInline" style="font-family:var(--font-mono); color:var(--accent);"></strong></p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('addTeacherModal')">+ Add Teacher</button>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="teacherSearch"
+              placeholder="Search teachers by name or email..." oninput="filterTeachers()" />
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="teachersTableBody">
+              <tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                <div class="spinner" style="margin:0 auto;"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── STUDENTS ───────────────────────────────────── -->
+      <section id="section-students" style="display:none;">
+        <div class="page-header">
+          <div><h2>All Students</h2><p>Read-only view. Teachers manage student records.</p></div>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="studentSearch"
+              placeholder="Search students..." oninput="filterStudents()" />
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Student ID</th><th>Class</th><th>Added</th><th>Avg. Score</th></tr>
+            </thead>
+            <tbody id="studentsTableBody">
+              <tr><td colspan="5" style="text-align:center; padding:2rem;">
+                <div class="spinner" style="margin:0 auto;"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── ALL GRADES ─────────────────────────────────── -->
+      <section id="section-grades" style="display:none;">
+        <div class="page-header">
+          <div><h2>All Grade Records</h2><p>View every grade entry across all teachers.</p></div>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+          <div class="search-bar" style="flex:1; min-width:200px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="gradeSearch"
+              placeholder="Search by student or subject..." oninput="filterGrades()" />
+          </div>
+          <select class="form-control" id="gradeLetter" onchange="filterGrades()" style="width:120px;">
+            <option value="">All Grades</option>
+            <option>A</option><option>B</option>
+            <option>C</option><option>D</option><option>F</option>
+          </select>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Student</th><th>Subject</th><th>Score</th><th>Grade</th><th>Term</th><th>Date</th></tr>
+            </thead>
+            <tbody id="gradesTableBody">
+              <tr><td colspan="6" style="text-align:center; padding:2rem;">
+                <div class="spinner" style="margin:0 auto;"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── SCHOOL INFO ─────────────────────────────────── -->
+      <section id="section-school" style="display:none;">
+        <div class="page-header">
+          <div><h2>School Information</h2><p>Edit your school's details.</p></div>
+          <button class="btn btn-primary" onclick="saveSchoolInfo()">Save Changes</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;" class="school-grid">
+          <div class="card">
+            <h4 style="margin-bottom:1.25rem;">Basic Details</h4>
+            <div class="form-group">
+              <label>School Name</label>
+              <input type="text" class="form-control" id="editSchoolName" />
+            </div>
+            <div class="form-group">
+              <label>Address</label>
+              <input type="text" class="form-control" id="editSchoolAddress" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>State</label>
+                <input type="text" class="form-control" id="editSchoolState" />
+              </div>
+              <div class="form-group">
+                <label>Country</label>
+                <input type="text" class="form-control" id="editSchoolCountry" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" class="form-control" id="editSchoolPhone" />
+            </div>
+          </div>
+
+          <div class="card">
+            <h4 style="margin-bottom:1rem;">School Code</h4>
+            <p style="font-size:0.875rem; margin-bottom:1rem;">Share this code with teachers so they can register and join your school.</p>
+            <div class="code-box" id="schoolCodeBox">
+              <span id="schoolCodeText">Loading...</span>
+              <button class="btn btn-sm btn-secondary" onclick="copyCode()">📋 Copy</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── GRADING SCALE ───────────────────────────────── -->
+      <section id="section-grading" style="display:none;">
+        <div class="page-header">
+          <div>
+            <h2>Grading Scale</h2>
+            <p>Define how scores map to letter grades. Applied school-wide.</p>
+          </div>
+          <button class="btn btn-primary" onclick="saveGradingScale()">Save Scale</button>
+        </div>
+
+        <div class="card" style="max-width:560px;">
+          <div style="display:grid; grid-template-columns:70px 1fr 1fr 36px; gap:0.5rem; margin-bottom:0.5rem;">
+            <span style="font-size:0.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Grade</span>
+            <span style="font-size:0.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Min Score</span>
+            <span style="font-size:0.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Max Score</span>
+            <span></span>
+          </div>
+          <div id="gradingScaleRows"></div>
+          <button class="btn btn-secondary btn-sm" onclick="addScaleRow()" style="margin-top:0.75rem;">
+            + Add Grade
+          </button>
+
+          <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--divider);">
+            <h4 style="margin-bottom:0.5rem; font-size:0.875rem;">Preview</h4>
+            <div id="gradePreview" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── APPEARANCE ──────────────────────────────────── -->
+      <section id="section-theme" style="display:none;">
+        <div class="page-header">
+          <div><h2>Appearance</h2><p>Customize your EduTrack experience.</p></div>
+        </div>
+
+        <div class="card" style="max-width:400px;">
+          <div class="theme-panel">
+            <div class="theme-row">
+              <span>Dark Mode</span>
+              <button class="toggle" id="darkToggle" onclick="toggleTheme()"></button>
+            </div>
+            <div style="border-top:1px solid var(--divider); padding-top:1rem;">
+              <p style="font-size:0.875rem; margin-bottom:0.75rem;">Accent Color</p>
+              <div class="accent-swatches">
+                <div class="swatch swatch-blue"   onclick="setAccent('blue')"   title="Blue"></div>
+                <div class="swatch swatch-violet" onclick="setAccent('violet')" title="Violet"></div>
+                <div class="swatch swatch-teal"   onclick="setAccent('teal')"   title="Teal"></div>
+                <div class="swatch swatch-rose"   onclick="setAccent('rose')"   title="Rose"></div>
+                <div class="swatch swatch-amber"  onclick="setAccent('amber')"  title="Amber"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /page-content -->
+  </main>
+</div>
+
+<!-- ── Add Teacher Modal ───────────────────────────────────── -->
+<div class="modal-overlay" id="addTeacherModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Teacher</h3>
+      <button class="modal-close" onclick="closeModal('addTeacherModal')">✕</button>
+    </div>
+    <div id="teacher-modal-error" class="alert alert-danger" style="display:none;"></div>
+    <div class="form-group">
+      <label>Full Name *</label>
+      <input type="text" class="form-control" id="newTeacherName" placeholder="Mrs. Jane Doe" />
+    </div>
+    <div class="form-group">
+      <label>Email Address *</label>
+      <input type="email" class="form-control" id="newTeacherEmail" placeholder="teacher@school.edu.ng" />
+    </div>
+    <div class="form-group">
+      <label>Temporary Password *</label>
+      <input type="password" class="form-control" id="newTeacherPassword" placeholder="Min 6 characters" />
+      <div class="form-hint">Teacher should change this after first login.</div>
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select class="form-control" id="newTeacherRole">
+        <option value="teacher">Teacher</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:0.75rem;">
+      <button class="btn btn-secondary" onclick="closeModal('addTeacherModal')" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="addTeacherBtn" onclick="addTeacher()" style="flex:2;">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, showToast, formatDate, getLetterGrade } from './js/firebase.js';
+  import { requireAuth, logoutUser, getSession } from './js/auth.js';
+  import {
+    doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+    collection, query, orderBy, limit, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import {
+    createUserWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  // ── Apply theme ────────────────────────────────────────────
+  const savedTheme  = localStorage.getItem('et-theme') || 'light';
+  const savedAccent = localStorage.getItem('et-accent') || 'blue';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.documentElement.setAttribute('data-accent', savedAccent);
+  if (savedTheme === 'dark') document.getElementById('darkToggle').classList.add('active');
+  updateSwatches(savedAccent);
+
+  // ── State ──────────────────────────────────────────────────
+  let schoolId, schoolData, gradingScale;
+  let allTeachers = [], allStudents = [], allGrades = [];
+
+  // ── Init ───────────────────────────────────────────────────
+  async function init() {
+    try {
+      const { userData } = await requireAuth('admin');
+      schoolId = userData.schoolId;
+
+      // Update UI with admin info
+      document.getElementById('adminName').textContent = userData.name;
+      document.getElementById('adminAvatar').textContent = userData.name.charAt(0).toUpperCase();
+
+      // Set greeting
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('welcomeTitle').textContent = `${greeting}, ${userData.name.split(' ')[0]} 👋`;
+
+      // Load school data
+      const schoolDoc = await getDoc(doc(db, 'schools', schoolId));
+      schoolData = schoolDoc.data();
+      gradingScale = schoolData.gradingScale || [];
+
+      document.getElementById('schoolNameLabel').textContent = schoolData.name;
+      document.getElementById('welcomeSub').textContent = `Overview for ${schoolData.name}`;
+      document.getElementById('statCode').textContent = schoolId.slice(0, 8).toUpperCase();
+      document.getElementById('schoolCodeInline').textContent = schoolId.slice(0, 8).toUpperCase();
+      document.getElementById('schoolCodeText').textContent = schoolId.slice(0, 8).toUpperCase();
+
+      // Prefill school edit form
+      document.getElementById('editSchoolName').value    = schoolData.name || '';
+      document.getElementById('editSchoolAddress').value = schoolData.address || '';
+      document.getElementById('editSchoolState').value   = schoolData.state || '';
+      document.getElementById('editSchoolCountry').value = schoolData.country || '';
+      document.getElementById('editSchoolPhone').value   = schoolData.phone || '';
+
+      // Load all data
+      await Promise.all([loadTeachers(), loadStudents(), loadGrades()]);
+      renderGradingScale();
+      document.getElementById('loadingOverlay').style.display = 'none';
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // ── Load Teachers ──────────────────────────────────────────
+  async function loadTeachers() {
+    const snap = await getDocs(collection(db, 'schools', schoolId, 'users'));
+    allTeachers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('statTeachers').textContent = allTeachers.length;
+    renderTeachers(allTeachers);
+
+    // Recent teachers for overview
+    const recent = [...allTeachers].slice(0, 4);
+    document.getElementById('recentTeachers').innerHTML = recent.length
+      ? recent.map(t => `
+          <div style="display:flex; align-items:center; gap:10px; padding:0.5rem 0; border-bottom:1px solid var(--divider);">
+            <div class="avatar" style="width:30px;height:30px;font-size:0.75rem;">${t.name.charAt(0)}</div>
+            <div>
+              <div style="font-size:0.875rem; font-weight:500;">${t.name}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${t.role}</div>
+            </div>
+          </div>`).join('')
+      : '<p style="color:var(--text-muted); font-size:0.875rem;">No teachers yet.</p>';
+  }
+
+  function renderTeachers(list) {
+    const tbody = document.getElementById('teachersTableBody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><span class="empty-icon">👩‍🏫</span><h3>No teachers yet</h3><p>Add a teacher using the button above.</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(t => `
+      <tr class="fade-in">
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="avatar" style="width:30px;height:30px;font-size:0.75rem;">${t.name.charAt(0)}</div>
+            <span>${t.name}</span>
+          </div>
+        </td>
+        <td style="color:var(--text-secondary);">${t.email}</td>
+        <td><span class="badge ${t.role === 'admin' ? 'role-badge-admin' : 'role-badge-teacher'}">${t.role}</span></td>
+        <td style="color:var(--text-muted);">${formatDate(t.createdAt)}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="removeTeacher('${t.id}', '${t.name}')">Remove</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  window.filterTeachers = () => {
+    const q = document.getElementById('teacherSearch').value.toLowerCase();
+    renderTeachers(allTeachers.filter(t =>
+      t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q)
+    ));
+  };
+
+  // ── Load Students ──────────────────────────────────────────
+  async function loadStudents() {
+    const snap = await getDocs(collection(db, 'schools', schoolId, 'students'));
+    allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('statStudents').textContent = allStudents.length;
+    renderStudents(allStudents);
+
+    // Recent for overview
+    const recent = [...allStudents].slice(0, 4);
+    document.getElementById('recentStudents').innerHTML = recent.length
+      ? recent.map(s => `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--divider);">
+            <div>
+              <div style="font-size:0.875rem; font-weight:500;">${s.name}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${s.class || 'No class'}</div>
+            </div>
+            <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${s.studentId || ''}</span>
+          </div>`).join('')
+      : '<p style="color:var(--text-muted); font-size:0.875rem;">No students yet.</p>';
+  }
+
+  function renderStudents(list) {
+    const tbody = document.getElementById('studentsTableBody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><span class="empty-icon">🎒</span><h3>No students yet</h3><p>Teachers add students from their dashboard.</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(s => {
+      const sGrades = allGrades.filter(g => g.studentId === s.id);
+      const avg = sGrades.length ? (sGrades.reduce((a,b) => a + b.score, 0) / sGrades.length).toFixed(1) : '—';
+      return `<tr>
+        <td>${s.name}</td>
+        <td style="font-family:var(--font-mono); color:var(--text-muted);">${s.studentId || '—'}</td>
+        <td>${s.class || '—'}</td>
+        <td style="color:var(--text-muted);">${formatDate(s.createdAt)}</td>
+        <td><strong>${avg}</strong></td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.filterStudents = () => {
+    const q = document.getElementById('studentSearch').value.toLowerCase();
+    renderStudents(allStudents.filter(s =>
+      s.name.toLowerCase().includes(q) || (s.studentId || '').toLowerCase().includes(q)
+    ));
+  };
+
+  // ── Load Grades ────────────────────────────────────────────
+  async function loadGrades() {
+    const snap = await getDocs(collection(db, 'schools', schoolId, 'grades'));
+    allGrades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('statGrades').textContent = allGrades.length;
+    renderGrades(allGrades);
+  }
+
+  function renderGrades(list) {
+    const tbody = document.getElementById('gradesTableBody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="empty-icon">📝</span><h3>No grades recorded</h3></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(g => {
+      const student = allStudents.find(s => s.id === g.studentId);
+      const letter = getLetterGrade(g.score, gradingScale);
+      return `<tr>
+        <td>${student ? student.name : 'Unknown'}</td>
+        <td>${g.subject}</td>
+        <td><strong>${g.score}</strong>/100</td>
+        <td><span class="grade-${letter}">${letter}</span></td>
+        <td>${g.term || '—'}</td>
+        <td style="color:var(--text-muted);">${formatDate(g.createdAt)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.filterGrades = () => {
+    const q = document.getElementById('gradeSearch').value.toLowerCase();
+    const letter = document.getElementById('gradeLetter').value;
+    let list = allGrades;
+    if (q) {
+      list = list.filter(g => {
+        const student = allStudents.find(s => s.id === g.studentId);
+        return (student?.name || '').toLowerCase().includes(q) || g.subject.toLowerCase().includes(q);
+      });
+    }
+    if (letter) {
+      list = list.filter(g => getLetterGrade(g.score, gradingScale) === letter);
+    }
+    renderGrades(list);
+  };
+
+  // ── Add Teacher ────────────────────────────────────────────
+  window.addTeacher = async function() {
+    const errEl = document.getElementById('teacher-modal-error');
+    errEl.style.display = 'none';
+    const name     = document.getElementById('newTeacherName').value.trim();
+    const email    = document.getElementById('newTeacherEmail').value.trim();
+    const password = document.getElementById('newTeacherPassword').value;
+    const role     = document.getElementById('newTeacherRole').value;
+
+    if (!name || !email || !password) { errEl.textContent = 'All fields are required.'; errEl.style.display='flex'; return; }
+    if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display='flex'; return; }
+
+    const btn = document.getElementById('addTeacherBtn');
+    btn.disabled = true; btn.textContent = 'Creating...';
+
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCred.user.uid;
+      await setDoc(doc(db, 'schools', schoolId, 'users', uid), {
+        name, email, role, schoolId, createdAt: serverTimestamp()
+      });
+      closeModal('addTeacherModal');
+      showToast(`${name} added as ${role}!`);
+      await loadTeachers();
+    } catch (err) {
+      errEl.textContent = err.code === 'auth/email-already-in-use'
+        ? 'This email is already registered.' : err.message;
+      errEl.style.display = 'flex';
+    }
+    btn.disabled = false; btn.textContent = 'Create Account';
+  };
+
+  // ── Remove Teacher ─────────────────────────────────────────
+  window.removeTeacher = async function(uid, name) {
+    if (!confirm(`Remove ${name} from this school? Their login will still exist but they'll lose access.`)) return;
+    await deleteDoc(doc(db, 'schools', schoolId, 'users', uid));
+    showToast(`${name} removed.`, 'warning');
+    await loadTeachers();
+  };
+
+  // ── Save School Info ───────────────────────────────────────
+  window.saveSchoolInfo = async function() {
+    await updateDoc(doc(db, 'schools', schoolId), {
+      name:    document.getElementById('editSchoolName').value.trim(),
+      address: document.getElementById('editSchoolAddress').value.trim(),
+      state:   document.getElementById('editSchoolState').value.trim(),
+      country: document.getElementById('editSchoolCountry').value.trim(),
+      phone:   document.getElementById('editSchoolPhone').value.trim(),
+    });
+    showToast('School info saved!');
+    document.getElementById('schoolNameLabel').textContent = document.getElementById('editSchoolName').value.trim();
+  };
+
+  // ── Grading Scale ──────────────────────────────────────────
+  function renderGradingScale() {
+    const container = document.getElementById('gradingScaleRows');
+    container.innerHTML = gradingScale.map((g, i) => `
+      <div class="grade-edit-row">
+        <input type="text" class="form-control" value="${g.letter}" maxlength="3"
+          oninput="gradingScale[${i}].letter=this.value.toUpperCase(); renderPreview();" />
+        <input type="number" class="form-control" value="${g.min}" min="0" max="100"
+          oninput="gradingScale[${i}].min=Number(this.value);" />
+        <input type="number" class="form-control" value="${g.max}" min="0" max="100"
+          oninput="gradingScale[${i}].max=Number(this.value);" />
+        <button class="btn btn-sm btn-danger" onclick="gradingScale.splice(${i},1); renderGradingScale();">✕</button>
+      </div>`).join('');
+    renderPreview();
+  }
+
+  function renderPreview() {
+    document.getElementById('gradePreview').innerHTML = gradingScale.map(g =>
+      `<div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:6px 12px;text-align:center;">
+        <div style="font-weight:700; color:var(--accent);">${g.letter}</div>
+        <div style="font-size:0.72rem; color:var(--text-muted);">${g.min}–${g.max}</div>
+      </div>`
+    ).join('');
+  }
+
+  window.addScaleRow = () => {
+    const letter = prompt('Enter letter grade (e.g. A+):');
+    if (!letter) return;
+    gradingScale.push({ letter: letter.toUpperCase(), min: 0, max: 100 });
+    renderGradingScale();
+  };
+
+  window.saveGradingScale = async function() {
+    await updateDoc(doc(db, 'schools', schoolId), { gradingScale });
+    showToast('Grading scale saved!');
+  };
+
+  // ── Copy Code ──────────────────────────────────────────────
+  window.copyCode = function() {
+    navigator.clipboard.writeText(schoolId.slice(0, 8).toUpperCase());
+    showToast('School code copied!');
+  };
+
+  // ── Section Nav ────────────────────────────────────────────
+  const sections = ['overview','teachers','students','grades','school','grading','theme'];
+  window.showSection = function(name) {
+    sections.forEach(s => {
+      document.getElementById(`section-${s}`).style.display = s === name ? 'block' : 'none';
+      document.getElementById(`nav-${s}`)?.classList.toggle('active', s === name);
+    });
+    const titles = { overview:'Overview', teachers:'Teachers', students:'Students',
+      grades:'All Grades', school:'School Info', grading:'Grading Scale', theme:'Appearance' };
+    document.getElementById('topbarTitle').textContent = titles[name] || name;
+    if (window.innerWidth < 768) closeSidebar();
+  };
+
+  // ── Sidebar ────────────────────────────────────────────────
+  window.toggleSidebar = () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').style.display =
+      document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+  };
+  window.closeSidebar = () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').style.display = 'none';
+  };
+
+  // ── Modal ──────────────────────────────────────────────────
+  window.openModal  = id => document.getElementById(id).classList.add('open');
+  window.closeModal = id => document.getElementById(id).classList.remove('open');
+
+  // ── Theme ──────────────────────────────────────────────────
+  window.toggleTheme = function() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('et-theme', next);
+    document.getElementById('darkToggle').classList.toggle('active', next === 'dark');
+  };
+  window.setAccent = function(accent) {
+    document.documentElement.setAttribute('data-accent', accent);
+    localStorage.setItem('et-accent', accent);
+    updateSwatches(accent);
+  };
+  function updateSwatches(active) {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.swatch-${active}`)?.classList.add('active');
+  }
+
+  // ── Logout ─────────────────────────────────────────────────
+  window.logout = logoutUser;
+
+  // ── Boot ───────────────────────────────────────────────────
+  init();
+</script>
+</body>
+</html>

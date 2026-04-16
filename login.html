@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-accent="blue">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTrack — Log In</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">🎓</div>
+      <h1>Welcome Back</h1>
+      <p>Sign in to your EduTrack account</p>
+    </div>
+
+    <div class="card">
+      <div id="login-error" class="alert alert-danger" style="display:none;"></div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" class="form-control" id="email" placeholder="you@school.edu.ng"
+          onkeydown="if(event.key==='Enter')login()" />
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-control" id="password" placeholder="Your password"
+          onkeydown="if(event.key==='Enter')login()" />
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg" id="loginBtn" onclick="login()">
+        Sign In
+      </button>
+
+      <div class="auth-divider">or</div>
+
+      <p style="text-align:center; font-size:0.875rem;">
+        New school? <a href="index.html#register">Register your school</a>
+      </p>
+
+      <p style="text-align:center; font-size:0.875rem; margin-top:0.5rem;">
+        <a href="signup.html">Teacher sign-up</a>
+      </p>
+    </div>
+
+    <!-- Theme toggle -->
+    <div style="text-align:center; margin-top:1.5rem;">
+      <button class="btn btn-sm btn-secondary" onclick="toggleTheme()">
+        🌙 Toggle Dark Mode
+      </button>
+    </div>
+
+    <!-- Accent swatches -->
+    <div style="display:flex; justify-content:center; gap:8px; margin-top:1rem;">
+      <div class="swatch swatch-blue"   onclick="setAccent('blue')"   title="Blue"></div>
+      <div class="swatch swatch-violet" onclick="setAccent('violet')" title="Violet"></div>
+      <div class="swatch swatch-teal"   onclick="setAccent('teal')"   title="Teal"></div>
+      <div class="swatch swatch-rose"   onclick="setAccent('rose')"   title="Rose"></div>
+      <div class="swatch swatch-amber"  onclick="setAccent('amber')"  title="Amber"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { loginUser } from './js/auth.js';
+  import { auth } from './js/firebase.js';
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  // Apply saved theme
+  const t = localStorage.getItem('et-theme') || 'light';
+  const a = localStorage.getItem('et-accent') || 'blue';
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-accent', a);
+  updateSwatches(a);
+
+  // If already logged in, redirect
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      const role = localStorage.getItem('et-role');
+      window.location.href = role === 'admin' ? 'admin.html' : 'teacher.html';
+    }
+  });
+
+  window.login = async function() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('loginBtn');
+
+    errEl.style.display = 'none';
+    if (!email || !password) {
+      errEl.textContent = 'Please enter your email and password.';
+      errEl.style.display = 'flex';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+
+    try {
+      const { userData } = await loginUser(email, password);
+      window.location.href = userData.role === 'admin' ? 'admin.html' : 'teacher.html';
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      const msg =
+        err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+          ? 'Incorrect email or password. Try again.'
+          : err.code === 'auth/user-not-found'
+          ? 'No account found with this email.'
+          : err.message;
+      errEl.textContent = msg;
+      errEl.style.display = 'flex';
+    }
+  };
+
+  window.toggleTheme = function() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('et-theme', next);
+  };
+
+  window.setAccent = function(accent) {
+    document.documentElement.setAttribute('data-accent', accent);
+    localStorage.setItem('et-accent', accent);
+    updateSwatches(accent);
+  };
+
+  function updateSwatches(active) {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.swatch-${active}`)?.classList.add('active');
+  }
+</script>
+</body>
+</html>
