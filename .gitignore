@@ -35,3 +35,4 @@ build/
 .cache/
 .parcel-cache
 
+js/firebase.js

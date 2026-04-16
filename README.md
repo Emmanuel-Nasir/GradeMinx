@@ -70,21 +70,7 @@ const firebaseConfig = {
 ```
 
 ### Step 6 — Set Firestore Security Rules
-In Firebase Console → **Firestore → Rules** tab, replace the default rules:
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /schools/{schoolId} {
-      allow read, write: if request.auth != null;
-      match /{subcollection}/{docId} {
-        allow read, write: if request.auth != null &&
-          exists(/databases/$(database)/documents/schools/$(schoolId)/users/$(request.auth.uid));
-      }
-    }
-  }
-}
+In Firebase Console → **Firestore → Rules** tab, replace the default rules
 ```
 
 Click **Publish**.
