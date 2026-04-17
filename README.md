@@ -94,7 +94,7 @@ Emmanuel Oluwamayowa Nasir
 CSE 310 — Applied Programming, Module 3: Cloud Databases  
 Date: 2026
 
-[Software Demo Video](https://youtu.be/ERYahKWEeU8)
+[Software Demo Video](https://www.youtube.com/watch?v=04mFmSQ7jFY)
 
 # Development Environment
 
